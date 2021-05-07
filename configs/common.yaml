@@ -1,2 +1,3 @@
 cfg:
   project: robotSrv
+  showLogToConsole: false

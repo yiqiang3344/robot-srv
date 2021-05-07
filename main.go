@@ -17,7 +17,7 @@ import (
 
 func init() {
 	config.InitCfg()
-	cLog.InitLogger(config.GetCfgString("project"))
+	cLog.InitLogger(config.GetCfgString("project"), config.GetCfgBool("showLogToConsole", false))
 }
 
 func main() {
