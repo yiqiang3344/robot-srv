@@ -15,5 +15,5 @@ require (
 	github.com/micro/go-micro/v2 v2.9.1
 	github.com/micro/go-plugins/registry/etcdv3/v2 v2.9.1
 	github.com/micro/go-plugins/wrapper/trace/opentracing/v2 v2.9.1
-	github.com/yiqiang3344/go-lib v0.0.5
+	github.com/yiqiang3344/go-lib v0.0.6
 )

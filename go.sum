@@ -489,6 +489,8 @@ github.com/yiqiang3344/go-lib v0.0.4 h1:SlEAAmFh28m0LToX5l2VuYQNk+SOPpTklaFkDmD8
 github.com/yiqiang3344/go-lib v0.0.4/go.mod h1:U5slLzcI/joFAWRPuw1DFB4Q6ymIIsoqGavey2YXbjs=
 github.com/yiqiang3344/go-lib v0.0.5 h1:sIoowOhvRl7wQPO4LsRYHGPjyU9X1kb7r+IzG7ZZs5k=
 github.com/yiqiang3344/go-lib v0.0.5/go.mod h1:U5slLzcI/joFAWRPuw1DFB4Q6ymIIsoqGavey2YXbjs=
+github.com/yiqiang3344/go-lib v0.0.6 h1:M9I4sWOiXPVjK19FuZOQfbVN3g8GwwNUy0Ckm9LHE58=
+github.com/yiqiang3344/go-lib v0.0.6/go.mod h1:U5slLzcI/joFAWRPuw1DFB4Q6ymIIsoqGavey2YXbjs=
 github.com/yiqiang3344/robot-srv v0.0.0-20210506095218-59e981ca9e56 h1:aHit3qZAA3oO111/Bf+mv+STI9dvIYLkM6y+vLeMGZQ=
 github.com/yiqiang3344/robot-srv v0.0.0-20210506095218-59e981ca9e56/go.mod h1:9YwZ5+E1bWP527loyaTg6rwDVHTTDpMjazS0hAiswac=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
