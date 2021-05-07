@@ -1,23 +1,24 @@
-package helper
+package freq
 
 import (
 	"crypto/md5"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"github.com/yiqiang3344/go-lib/helper"
+	cLog "github.com/yiqiang3344/go-lib/utils/log"
+	cRedis "github.com/yiqiang3344/go-lib/utils/redis"
 	"strconv"
 	"strings"
 	"time"
 )
 
 func CheckFreq(_type string, title string, limitFreq int) (bool, string) {
-	redisInstance := helper.DefaultRedis()
+	redisInstance := cRedis.DefaultRedis()
 	defer redisInstance.Close()
-	freqKey := helper.GenRedisKey("frequency:" + _type + ":" + fmt.Sprintf("%x", md5.Sum([]byte(title))))
-	historyKey := helper.GenRedisKey("history:" + _type + ":" + fmt.Sprintf("%x", md5.Sum([]byte(title))))
+	freqKey := cRedis.GenRedisKey("frequency:" + _type + ":" + fmt.Sprintf("%x", md5.Sum([]byte(title))))
+	historyKey := cRedis.GenRedisKey("history:" + _type + ":" + fmt.Sprintf("%x", md5.Sum([]byte(title))))
 	r, err := redis.Bool(redisInstance.Do("setnx", freqKey, 1))
 	if err != nil {
-		helper.ErrorLog("setnx "+freqKey+" error:"+err.Error(), "")
+		cLog.ErrorLog("setnx "+freqKey+" error:"+err.Error(), "")
 		return false, ""
 	}
 	if r == false {

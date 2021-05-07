@@ -5,9 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/garyburd/redigo/redis"
-	"github.com/yiqiang3344/go-lib/helper"
+	"github.com/yiqiang3344/go-lib/utils/encry"
+	cLog "github.com/yiqiang3344/go-lib/utils/log"
+	cMysql "github.com/yiqiang3344/go-lib/utils/mysql"
+	cNet "github.com/yiqiang3344/go-lib/utils/net"
+	cRedis "github.com/yiqiang3344/go-lib/utils/redis"
+	"github.com/yiqiang3344/go-lib/utils/trace"
 	"log"
-	helper2 "robot-srv/helper"
+	"robot-srv/utils/freq"
 	"strconv"
 	"time"
 
@@ -55,7 +60,7 @@ var Db *sqlx.DB
 
 // Call is a single request handler called via client.Call or the generated client code
 func (e *RobotSrv) SendMsg(ctx context.Context, req *robotSrv.Request, rsp *robotSrv.Response) error {
-	sp := helper.NewInnerSpan(helper.RunFuncName(), ctx)
+	sp := trace.NewInnerSpan(trace.RunFuncName(), ctx)
 	if sp != nil {
 		defer sp.Finish()
 	}
@@ -69,20 +74,20 @@ func (e *RobotSrv) SendMsg(ctx context.Context, req *robotSrv.Request, rsp *robo
 }
 
 func sendRobotMsg(ctx context.Context, req *robotSrv.Request) {
-	redisInstance := helper.DefaultRedis()
+	redisInstance := cRedis.DefaultRedis()
 	defer redisInstance.Close()
 	//频率限制
-	_r, tips := helper2.CheckFreq("robotMsg", req.Title, 60)
+	_r, tips := freq.CheckFreq("robotMsg", req.Title, 60)
 	if _r == false {
 		return
 	}
 
 	//redis读取机器人配置
-	key := helper.GenRedisKey("robotAppConfig:" + req.BizType)
+	key := cRedis.GenRedisKey("robotAppConfig:" + req.BizType)
 	r, err := redis.String(redisInstance.Do("get", key))
 	if r == "" {
 		//从mysql查询biz_type配置
-		Db, err := helper.DefaultDB()
+		Db, err := cMysql.DefaultDB()
 		if err != nil {
 			return
 		}
@@ -90,23 +95,23 @@ func sendRobotMsg(ctx context.Context, req *robotSrv.Request) {
 		var robotAppConfig []RobotAppConfig
 		err = Db.Select(&robotAppConfig, "select id, type, cfg from robot_app_config where biz_type=? order by id asc limit 1", req.BizType)
 		if err != nil {
-			helper.ErrorLog("select robotAppConfig["+req.BizType+"] failed:"+err.Error(), helper.RunFuncName())
+			cLog.ErrorLog("select robotAppConfig["+req.BizType+"] failed:"+err.Error(), trace.RunFuncName())
 			return
 		}
 
 		if len(robotAppConfig) == 0 {
-			helper.ErrorLog("配置不存在 robotAppConfig["+req.BizType+"]", helper.RunFuncName())
+			cLog.ErrorLog("配置不存在 robotAppConfig["+req.BizType+"]", trace.RunFuncName())
 			return
 		}
 
 		_, err = redisInstance.Do("set", key, robotAppConfig[0].Cfg)
 		if err != nil {
-			helper.ErrorLog("redis set "+key+" failed:"+err.Error(), helper.RunFuncName())
+			cLog.ErrorLog("redis set "+key+" failed:"+err.Error(), trace.RunFuncName())
 			return
 		}
 		_, err = redisInstance.Do("expire", key, 3600) //缓存1小时
 		if err != nil {
-			helper.ErrorLog("redis expire "+key+" failed:"+err.Error(), helper.RunFuncName())
+			cLog.ErrorLog("redis expire "+key+" failed:"+err.Error(), trace.RunFuncName())
 			return
 		}
 
@@ -116,7 +121,7 @@ func sendRobotMsg(ctx context.Context, req *robotSrv.Request) {
 	var cfg RobotAppConfigCfg
 	err = json.Unmarshal([]byte(r), &cfg)
 	if err != nil {
-		helper.ErrorLog("json decode failed:"+r+" --- "+err.Error(), helper.RunFuncName())
+		cLog.ErrorLog("json decode failed:"+r+" --- "+err.Error(), trace.RunFuncName())
 		return
 	}
 
@@ -149,19 +154,19 @@ func sendRobotMsg(ctx context.Context, req *robotSrv.Request) {
 
 	timestamp := strconv.FormatInt(time.Now().Unix()*1000, 10)
 	signStr := fmt.Sprintf("%s\n%s", timestamp, cfg.SecretKey)
-	sign := helper.ComputeHmacSha256(signStr, cfg.SecretKey)
+	sign := encry.ComputeHmacSha256(signStr, cfg.SecretKey)
 	_url := "https://oapi.dingtalk.com/robot/send?access_token=" + cfg.AccessToken + "&timestamp=" + timestamp + "&sign=" + sign
-	ret, statusCode, retStr := helper.PostJson(ctx, _url, data, 5*time.Second)
+	ret, statusCode, retStr := cNet.PostJson(ctx, _url, data, 5*time.Second)
 	if !ret {
-		helper.BizLog("钉钉消息发送失败["+strconv.Itoa(statusCode)+"]:"+retStr, "")
+		cLog.BizLog("钉钉消息发送失败["+strconv.Itoa(statusCode)+"]:"+retStr, "")
 		return
 	}
-	helper.BizLog("钉钉消息发送成功:"+retStr, "")
+	cLog.BizLog("钉钉消息发送成功:"+retStr, "")
 }
 
 // Call is a single request handler called via client.Call or the generated client code
 func (e *RobotSrv) Test(ctx context.Context, req *robotSrv.TestRequest, rsp *robotSrv.Response) error {
-	sp := helper.NewInnerSpan(helper.RunFuncName(), ctx)
+	sp := trace.NewInnerSpan(trace.RunFuncName(), ctx)
 	if sp != nil {
 		defer sp.Finish()
 	}
@@ -182,12 +187,12 @@ func test(ctx context.Context) {
 		Test: "test",
 	}
 	_url := "http://localhost:8080/robot/test"
-	ret, statusCode, retStr := helper.PostJson(ctx, _url, data, 5*time.Second)
+	ret, statusCode, retStr := cNet.PostJson(ctx, _url, data, 5*time.Second)
 	if !ret {
-		helper.DebugLog("测试消息发送失败["+strconv.Itoa(statusCode)+"]:"+retStr, "")
+		cLog.DebugLog("测试消息发送失败["+strconv.Itoa(statusCode)+"]:"+retStr, "")
 		return
 	}
-	helper.DebugLog("测试消息发送成功:"+retStr, "")
+	cLog.DebugLog("测试消息发送成功:"+retStr, "")
 }
 
 func test1(ctx context.Context) {
@@ -195,10 +200,10 @@ func test1(ctx context.Context) {
 		Test: "test1",
 	}
 	_url := "http://localhost:8080/robot/test1"
-	ret, statusCode, retStr := helper.PostJson(ctx, _url, data, 5*time.Second)
+	ret, statusCode, retStr := cNet.PostJson(ctx, _url, data, 5*time.Second)
 	if !ret {
-		helper.DebugLog("测试消息发送失败["+strconv.Itoa(statusCode)+"]:"+retStr, "")
+		cLog.DebugLog("测试消息发送失败["+strconv.Itoa(statusCode)+"]:"+retStr, "")
 		return
 	}
-	helper.DebugLog("测试消息发送成功:"+retStr, "")
+	cLog.DebugLog("测试消息发送成功:"+retStr, "")
 }
