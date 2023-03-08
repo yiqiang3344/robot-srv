@@ -1,3 +1,5 @@
 configs/local.yaml
 log/*
 main
+.DS_Store
+.idea
